@@ -1,3 +1,4 @@
+import gspread
 from discord import app_commands, Interaction
 from discord.ext import commands
 from discord.ext.commands import Context
@@ -19,7 +20,13 @@ class NE(commands.Cog, name="newera"):
         :param context: The application command context.
         :param item: The selected item.
         """
-        await context.send(f"You selected: {item}")
+        if item not in self.bot.items:
+            await context.send(f"Item '{item}' not found in the list.")
+            return
+        sh = self.bot.loottable.get_worksheet(0)
+        row = sh.find(item).row
+        cost = sh.cell(row, 5).value
+        await context.send(f"The cost of **{item}** is **{cost}**.")
     @cost.autocomplete("item")
     async def cost_autocomplete(
         self, interaction: Interaction, current: str
@@ -31,15 +38,9 @@ class NE(commands.Cog, name="newera"):
         :param current: The current input from the user.
         :return: A list of choices matching the user's input.
         """
-        choices = [
-            app_commands.Choice(name="Godly-Bloodfang-Helm-of-Rejuvination", value="Godly-Bloodfang-Helm-of-Rejuvination"),
-            app_commands.Choice(name="Imperial-Bloodfang-Helm-of-Rejuvination", value="Imperial-Bloodfang-Helm-of-Rejuvination"),
-            app_commands.Choice(name="Royal-Bloodfang-Helm-of-Rejuvination", value="Royal-Bloodfang-Helm-of-Rejuvination"),
-            app_commands.Choice(name="Godly-Bloodfang-Helm-of-Prosperity", value="Godly-Bloodfang-Helm-of-Prosperity"),
-            app_commands.Choice(name="Imperial-Bloodfang-Helm-of-Prosperity", value="Imperial-Bloodfang-Helm-of-Prosperity"),
-            app_commands.Choice(name="Royal-Bloodfang-Helm-of-Prosperity", value="Royal-Bloodfang-Helm-of-Prosperity"),
-        ]
-        return [choice for choice in choices if current.lower() in choice.name.lower()]
+        choice_items = [app_commands.Choice(name=item, value=item) for item in self.bot.items]
+        choices = [choice for choice in choice_items if current.lower() in choice.name.lower()]
+        return [] if len(choices) > 25 else choices
 
 async def setup(bot) -> None:
     await bot.add_cog(NE(bot))

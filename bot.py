@@ -7,6 +7,7 @@ import sys
 
 import aiosqlite
 import discord
+import gspread
 from discord.ext import commands, tasks
 from discord.ext.commands import Context
 from dotenv import load_dotenv
@@ -130,6 +131,9 @@ class DiscordBot(commands.Bot):
         self.bot_prefix = os.getenv("PREFIX")
         self.invite_link = os.getenv("INVITE_LINK")
 
+        self.loottable = None
+        self.items = []
+
     async def init_db(self) -> None:
         async with aiosqlite.connect(
             f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db"
@@ -191,6 +195,12 @@ class DiscordBot(commands.Bot):
                 f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db"
             )
         )
+
+        current_dir = os.path.realpath(os.path.dirname(__file__))
+        service_account_path = os.path.join(current_dir, "service_account.json")
+        gc = gspread.service_account(filename=service_account_path)
+        self.loottable = gc.open("Loot Table + Worths 3.0")
+        self.items = self.loottable.get_worksheet(0).col_values(2)
 
     async def on_message(self, message: discord.Message) -> None:
         """
